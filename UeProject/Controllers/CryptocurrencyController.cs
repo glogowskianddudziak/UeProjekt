@@ -79,7 +79,7 @@ namespace UeProject.Controllers
                     return Request.CreateResponse(HttpStatusCode.BadRequest, "Operation result too long.");
                 }
 
-                return Request.CreateResponse(HttpStatusCode.OK, $"{result:0.00000}");
+                return Request.CreateResponse(HttpStatusCode.OK, $"{result:0.#####}");
             }
 
             return Request.CreateResponse(HttpStatusCode.InternalServerError, "Connection to WorldCoinIndex api failed");
@@ -151,7 +151,7 @@ namespace UeProject.Controllers
                     return Request.CreateResponse(HttpStatusCode.BadRequest, "Operation result too long.");
                 }
 
-                return Request.CreateResponse(HttpStatusCode.OK, $"{result:0.00000}");
+                return Request.CreateResponse(HttpStatusCode.OK, $"{result:0.#####}");
             }
 
             return Request.CreateResponse(HttpStatusCode.InternalServerError, "Connection to WorldCoinIndex api failed");
