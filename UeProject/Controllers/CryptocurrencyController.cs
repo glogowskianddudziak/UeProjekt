@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using System.Web.Http;
+using System.Web.WebPages;
 using Newtonsoft.Json;
 using Swashbuckle.Swagger.Annotations;
 using UeProject.Helpers;
@@ -51,6 +53,9 @@ namespace UeProject.Controllers
             HttpResponseMessage responseMessage = await client.GetAsync(apiUrl);
             if (responseMessage.IsSuccessStatusCode)
             {
+                if(from == to)
+                    return Request.CreateResponse(HttpStatusCode.OK, 1);
+
                 var responseData = responseMessage.Content.ReadAsStringAsync().Result;
 
                 var apiCoins = JsonConvert.DeserializeObject<AllCoins>(responseData).Markets.ToList();
@@ -60,10 +65,21 @@ namespace UeProject.Controllers
                 if (coins.Count < 2)
                     return Request.CreateResponse(HttpStatusCode.BadRequest, "Did not find cryptocurrencies with given labels");
 
-                var result = _exchangeLogic.ConvertCryptoCurrency(coins.Where(c => c.Label.StartsWith(from.ToUpper() + "/")).Select(c => c.Price_usd).FirstOrDefault(),
-                    coins.Where(c => c.Label.StartsWith(to.ToUpper() + "/")).Select(c => c.Price_usd).FirstOrDefault(), amount);
+                decimal result;
+                try
+                {
+                    result = _exchangeLogic.ConvertCryptoCurrency(
+                        coins.Where(c => c.Label.StartsWith(from.ToUpper() + "/")).Select(c => c.Price_usd)
+                            .FirstOrDefault(),
+                        coins.Where(c => c.Label.StartsWith(to.ToUpper() + "/")).Select(c => c.Price_usd)
+                            .FirstOrDefault(), amount);
+                }
+                catch (OverflowException)
+                {
+                    return Request.CreateResponse(HttpStatusCode.BadRequest, "Operation result too long.");
+                }
 
-                return Request.CreateResponse(HttpStatusCode.OK, result.ToString("#.####"));
+                return Request.CreateResponse(HttpStatusCode.OK, $"{result:0.00000}");
             }
 
             return Request.CreateResponse(HttpStatusCode.InternalServerError, "Connection to WorldCoinIndex api failed");
@@ -125,9 +141,17 @@ namespace UeProject.Controllers
                 if (coin == null)
                     return Request.CreateResponse(HttpStatusCode.BadRequest, "Did not find cryptocurrencies with given labels");
 
-                var result = _exchangeLogic.ConvertCryptoCurrencyToDollars(coin.Price_usd, amount);
+                decimal result;
+                try
+                {
+                    result = _exchangeLogic.ConvertCryptoCurrencyToDollars(coin.Price_usd, amount);
+                }
+                catch (OverflowException)
+                {
+                    return Request.CreateResponse(HttpStatusCode.BadRequest, "Operation result too long.");
+                }
 
-                return Request.CreateResponse(HttpStatusCode.OK, result.ToString("#.####"));
+                return Request.CreateResponse(HttpStatusCode.OK, $"{result:0.00000}");
             }
 
             return Request.CreateResponse(HttpStatusCode.InternalServerError, "Connection to WorldCoinIndex api failed");
